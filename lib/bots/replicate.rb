@@ -1,30 +1,56 @@
 module Bot
-  class Replicate
+  class Replicate < AIModel
     def initialize
     end
 
-    def generate_image(prompt, model_name, aspect_ratio)
-      model = Replicate.client.retrieve_model(model_name)
+    def image_api(prompt, options = {})
+      aspect_ratio = options.fetch(:aspect_ratio, '1:1')
+      model_name = options.fetch(:model_name)
+      model = ::Replicate.client.retrieve_model(model_name)
 
       version = model.latest_version
-      begin
-        # webhook_url = "https://" + ENV.fetch("HOST") + "/replicate/webhook"
-        prediction = version.predict(prompt: prompt, aspect_ratio: aspect_ratio, disable_safety_checker: true) #, safety_tolerance: 5)
-        data = prediction.refetch
+      # webhook_url = "https://" + ENV.fetch("HOST") + "/replicate/webhook"
+      prediction = version.predict(prompt: prompt,
+                                   image: options.fetch(:image),
+                                   "model": "dev",
+                                   "go_fast": true,
+                                   "lora_scale": 1,
+                                   "megapixels": "1",
+                                   "num_outputs": 1,
+                                   "aspect_ratio": "1:1",
+                                   "output_format": "webp",
+                                   "guidance_scale": 10,
+                                   "output_quality": 80,
+                                   "prompt_strength": 0.77,
+                                   "extra_lora_scale": 1,
+                                   "num_inference_steps": 38,
+                                   # disable_safety_checker: true,
+                                   # afety_tolerance: 5
+      )
 
-        until prediction.finished? do
-          sleep 1
-          data = prediction.refetch
-        end
+      prediction
+    end
 
-        raise data.fetch('error') if prediction.failed? || prediction.canceled?
+    private
 
-      ensure
-        # params.permit(:prompt, :aspect_ratio, :model, :replicate)
-        SavePicToOssJob.perform_later({ user: current_user, model_name: model_name, aspect_ratio: aspect_ratio, prompt: prompt, data: data })
+    def query_image_task_api(prediction)
+      data = prediction.refetch
+
+      if prediction.succeeded?
+        return {
+          status: 'success',
+          image: prediction.output,
+          data: data
+        }
+      elsif prediction.failed? || prediction.canceled?
+        fail 'generate image failed or canceled:' + data.fetch('error')
+      else
+        return {
+          status: data['status'],
+          image: prediction&.output,
+          data: data
+        }
       end
-
-      prediction.output
     end
   end
 end

@@ -10,7 +10,7 @@ class CreateTools < ActiveRecord::Migration[6.1]
       t.string :pricing_type # free, freemium, paid
       t.timestamps
     end
-    add_index :tools, :name
+    add_index :tools, :name, unique: true
     add_index :tools, :published
   end
 end 

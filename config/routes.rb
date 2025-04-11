@@ -31,6 +31,10 @@ Rails.application.routes.draw do
       post 'log_client_error', to: 'info#log_client_error'
       get 'active_subscription_info', to: 'info#active_subscription_info', as: 'active_subscription_info'
 
+      post 'gen_image', to: 'ai#gen_image'
+      post 'gen_video', to: 'ai#gen_video'
+      get 'ai_call_info', to: 'ai#ai_call_info'
+
       resources :info do
         collection do
 
@@ -41,6 +45,8 @@ Rails.application.routes.draw do
         resources :dashboard do
           collection do
             get 'staticstics_info' => 'dashboard#statistics_info'
+            get 'ai_call_info' => 'dashboard#ai_call_info'
+            get 'error_log', to: 'dashboard#error_log'
           end
         end
       end
@@ -50,6 +56,9 @@ Rails.application.routes.draw do
           get :published
           get :unpublished
           get :search
+          get :tool_alternatives
+          get :tag_tools
+          get :monthly_tools
         end
 
         member do
