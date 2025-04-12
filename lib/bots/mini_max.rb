@@ -108,7 +108,7 @@ module Bot
         else
           return {
             status: h['status'],
-            video: retrieve_video_file(h['file_id']),
+            video: nil,
             data: h
           }
         end

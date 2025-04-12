@@ -205,7 +205,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_03_29_035916) do
     t.string "pricing_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["name"], name: "index_tools_on_name", unique: true
+    t.index ["name"], name: "index_tools_on_name"
     t.index ["published"], name: "index_tools_on_published"
   end
 

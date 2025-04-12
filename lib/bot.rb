@@ -80,5 +80,6 @@ require 'bots/smarttrot'
 require 'bots/kling'
 require 'bots/fal'
 require 'bots/replicate'
+require 'bots/gpt4oimage'
 
 

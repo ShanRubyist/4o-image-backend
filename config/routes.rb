@@ -34,6 +34,11 @@ Rails.application.routes.draw do
       post 'gen_image', to: 'ai#gen_image'
       post 'gen_video', to: 'ai#gen_video'
       get 'ai_call_info', to: 'ai#ai_call_info'
+      post 'single_line_drawing', to: 'ai#single_line_drawing'
+      post 'food_photography_generator', to: 'ai#food_photography_generator'
+      post 'logo_generator', to: 'ai#logo_generator'
+      post 'medal_generator', to: 'ai#medal_generator'
+      post 'four_panel_comic', to: 'ai#four_panel_comic'
 
       resources :info do
         collection do
