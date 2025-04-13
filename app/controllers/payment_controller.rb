@@ -4,7 +4,7 @@
 # 3、paddle_billing 的 metadata 和refund 是通过猴子补丁的方式，打开Pay::PaddleBilling::Charge类重写sync方式实现的 lib/pay/paddle_billing/charge.rb
 
 class PaymentController < ApplicationController
-  before_action :authenticate_user!
+  before_action :authenticate_user!, except: [:creem_callback]
 
   include PayUtils
 
@@ -40,6 +40,61 @@ class PaymentController < ApplicationController
     render json: {
       url: checkout_session.url
     }
+  end
+
+  def creem_checkout
+    # current_user.set_payment_processor :stripe
+    creem_customer
+
+    # fail 'mode cannot be null' unless params[:mode]
+    params[:mode] ||= 'payment'
+    params[:success_url] ||= params[:success_url]
+
+    # case params[:mode]
+    # when 'payment'
+      @client ||= Faraday.new(url: 'https://test-api.creem.io/')
+      resp = @client.post('/v1/checkouts') do |req|
+        req.headers['x-api-key'] = ENV.fetch('CREEM_API_KEY')
+        req.headers['Content-Type'] = 'application/json'
+        req.body = {
+          success_url: params[:success_url],
+          product_id: 'prod_6jLeMUwH0AIZ4AFlLvkdHM',#params[:price_id],
+          customer: {
+            "id": "<string>", #customer_id
+            "email": current_user.email
+          },
+          metadata: {
+            request_id: SecureRandom.uuid,
+          userId: current_user.id,
+          credits: 10, #credit_of_price(params[:price_id]),
+          }
+        }.to_json
+      end
+    # when 'subscription'
+    #   if has_active_subscription?(current_user)
+    #     render json: {
+    #       message: "Your already has a active subscription"
+    #     }.to_json, status: 500
+    #
+    #     return
+    #   end
+    #   checkout_session = stripe_checkout_subscription(current_user, params[:price_id], params[:success_url], params[:cancel_url])
+    # end
+
+    render json: {
+      url: JSON.load(resp.body)['checkout_url']
+    }
+  end
+
+  def creem_callback
+    if valid_signature?(request.headers["creem-signature"])
+      record = Pay::Webhook.create!(processor: :creem, event_type: params[:eventType], event: request.body)
+      # PayProcessJob.perform_later(record)
+      PayProcessJob.perform_now(JSON.parse(request.body.read)['id'])
+      head :ok
+    else
+      head :bad_request
+    end
   end
 
   def paddle_customer
@@ -93,6 +148,19 @@ class PaymentController < ApplicationController
   end
 
   private
+
+  def creem_customer
+    customer = Pay::Customer.find_by(processor: :creem, processor_id: current_user.email)
+    return unless customer
+    Pay::Customer.create!(processor: :creem, processor: current_user.email)
+  end
+
+  def valid_signature?(signature)
+    return true if Rails.env.development?
+    return false if signature.blank?
+    hmac = OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha256'), ENV.fetch('CREEM_SIGNING_SECRET'), request.body.read)
+    hmac == signature
+  end
 
   def stripe_checkout_payment(user, price_id, success_url, cancel_url)
     fail 'price_id cannot be null' unless price_id
