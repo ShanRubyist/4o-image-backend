@@ -1,11 +1,9 @@
 require 'bot'
 
 class Api::V1::AiController < UsageController
-  skip_before_action :check_credits, only: [:ai_call_info]
+  skip_around_action :check_credits, only: [:ai_call_info]
+  skip_before_action :check_if_maintenance_mode, only: [:ai_call_info]
 
-  # def current_user
-  #   User.first
-  # end
   # # 你是一个图片生成 prompt 大师，根据用户给出的内容，生成奖牌的英文 prompt, 奖牌形状是星型，材质是金子。
   # # 你是一个图片生成 prompt 大师，根据用户给出的内容，生成 branding logo
   # # 你是一个图片生成 prompt 大师，根据用户给出的内容，生成 Food Photography

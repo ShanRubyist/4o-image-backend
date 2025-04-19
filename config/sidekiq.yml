@@ -1,0 +1,10 @@
+:concurrency: <%= ENV.fetch('SIDEKIQ_CONCURRENCY') { 5 } %>
+:pidfile: ./tmp/pids/sidekiq.pid
+:logfile: ./log/sidekiq.log
+:daemon: true
+
+# 任务指定优先级
+:queues:
+  - [ pay_queue, 200 ]
+  - [ mailers, 100 ]
+  - [ default, 1 ]

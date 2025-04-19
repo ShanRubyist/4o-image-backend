@@ -1,16 +1,41 @@
 class UsageController < ApplicationController
   before_action :authenticate_user!
+  before_action :check_if_maintenance_mode
+  around_action :check_credits
 
-  include Usage
-  before_action :check_credits
+  include CreditsCounter
+  include DistributedLock
+
+  def credits_enough?(current_cost_credits)
+    raise NotImplementedError, "You must define #current_cost_credits in #{self.class}" unless defined?(:current_cost_credits)
+    (left_credits(current_user) >= current_cost_credits) || subscription_valid?
+  end
 
   private
 
+  def has_payment?
+    ENV.fetch('HAS_PAYMENT') == 'true' ? true : false
+  end
+
+  def account_confirmed?
+    current_user.confirmed?
+  end
+
+  def subscription_valid?
+    current_user.subscriptions.last&.active?
+  end
+
   def check_credits
-    unless credits_enough?
-      render json: {
-        message: 'You do not has enough credits'
-      }.to_json, status: 403
+    with_redis_lock(current_user.id) do
+      if credits_enough?(2)
+        # TOOD: 临时占用
+        yield
+        # TOOD: 释放占用
+      else
+        render json: {
+          message: 'You do not has enough credits'
+        }.to_json, status: 403
+      end
     end
   end
 
