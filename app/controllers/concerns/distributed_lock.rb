@@ -12,7 +12,7 @@ module DistributedLock
   end
 
   def with_redis_lock(key, timeout = 60)
-    lock_key = "lock:#{key}"
+    lock_key = "user_lock:#{key}"
     lock_value = SecureRandom.uuid
 
     attempt = 0
