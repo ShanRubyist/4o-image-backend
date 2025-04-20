@@ -10,7 +10,6 @@ class ApplicationController < ActionController::API
 
   render :json
 
-
   def cors_preflight_check
     # if request.method == 'OPTIONS'
     render status: 200
@@ -18,6 +17,22 @@ class ApplicationController < ActionController::API
   end
 
   private
+
+  def maintenance_mode?
+    @@maintenance ||= false
+  end
+
+  def maintenance_mode!
+    @@maintenance = true if current_user.email == ENV.fetch('ADMIN_USER_EMAIL')
+  end
+
+  def check_if_maintenance_mode
+    if maintenance_mode?
+      render json: {
+        error: "Maintenance in progress. Please try again in 10 minutes."
+      }, status: 503
+    end
+  end
 
   def user_not_authorized
     # fail 'User not authorized'
