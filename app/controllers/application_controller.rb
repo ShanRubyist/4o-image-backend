@@ -10,6 +10,8 @@ class ApplicationController < ActionController::API
 
   render :json
 
+  @@maintenance = false
+
   def cors_preflight_check
     # if request.method == 'OPTIONS'
     render status: 200
@@ -19,11 +21,12 @@ class ApplicationController < ActionController::API
   private
 
   def maintenance_mode?
-    @@maintenance ||= false
+    @@maintenance
   end
 
   def maintenance_mode!
-    @@maintenance = true if current_user.email == ENV.fetch('ADMIN_USER_EMAIL')
+    puts @@maintenance
+    @@maintenance = true# if current_user.email == ENV.fetch('ADMIN_USER_EMAIL')
   end
 
   def check_if_maintenance_mode

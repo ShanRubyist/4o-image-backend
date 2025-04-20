@@ -1,8 +1,13 @@
 class Api::V1::Admin::DashboardController < Api::V1::AdminController
   def maintenance_mode
     maintenance_mode!
-    render json: {
-    }, status: :ok
+
+    if maintenance_mode?
+      render json: {
+      }, status: :ok
+    else
+      render status: 503
+    end
   end
 
   def statistics_info
