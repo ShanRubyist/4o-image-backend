@@ -42,6 +42,7 @@ Rails.application.routes.draw do
       post 'logo_generator', to: 'ai#logo_generator'
       post 'medal_generator', to: 'ai#medal_generator'
       post 'four_panel_comic', to: 'ai#four_panel_comic'
+      post 'action_figure', to: 'ai#action_figure'
 
       resources :info do
         collection do

@@ -4,6 +4,47 @@ class Api::V1::AiController < UsageController
   skip_around_action :check_credits, only: [:ai_call_info]
   skip_before_action :check_if_maintenance_mode, only: [:ai_call_info]
 
+  def action_figure
+    prompt = params['prompt']
+    raise 'prompt can not be empty' unless prompt.present?
+
+    model_name = 'black-forest-labs/flux-schnell'
+
+    conversation = current_user.conversations.create
+    ai_call = conversation.ai_calls.create(
+      task_id: SecureRandom.uuid,
+      prompt: prompt,
+      status: 'submit',
+      input: params,
+      "cost_credits": current_cost_credits)
+
+    ai_bot = Bot::Replicate.new
+    prompt = 'Please create an image of an action figure in packaging. ' + prompt
+
+    task = ai_bot.generate_image(prompt, model_name: model_name,prompt: prompt)
+
+    # query task status
+    images = ai_bot.query_image_task(task) do |h|
+      ai_call.update_ai_call_status(h)
+    end
+
+    # OSS
+    require 'open-uri'
+    SaveToOssJob.perform_now(ai_call.id,
+                             :generated_media,
+                             {
+                               io: images.first,
+                               filename: URI(images.first).path.split('/').last,
+                               content_type: "image/jpeg"
+                             }
+    )
+
+    render json: {
+      images: images
+    }
+  end
+
+
   # # 你是一个图片生成 prompt 大师，根据用户给出的内容，生成奖牌的英文 prompt, 奖牌形状是星型，材质是金子。
   # # 你是一个图片生成 prompt 大师，根据用户给出的内容，生成 branding logo
   # # 你是一个图片生成 prompt 大师，根据用户给出的内容，生成 Food Photography
